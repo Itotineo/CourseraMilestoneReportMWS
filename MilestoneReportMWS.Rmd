@@ -1,0 +1,168 @@
+---
+title: "MilestoneReportMWS"
+author: "Martin Skarzynski"
+date: "February 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## S
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+This was the code offered in the course materials for getting and cleaning the data (Task 1) for reading and loading in a subset of data.
+
+con <- file("en_US.twitter.txt", "r") 
+readLines(con, 1) ## Read the first line of text 
+readLines(con, 1) ## Read the next line of text 
+readLines(con, 5) ## Read in the next 5 lines of text 
+close(con) ## It's important to close the connection when you are done
+setwd("C:/Users/skarzynskimw/Coursera-SwiftKey/final/en_US")
+list.files()
+```{r cars}
+
+## Download the raw data file...
+## Unless you already have it in your working directory
+if (!file.exists("Coursera-SwiftKey.zip")) {
+  download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", destfile = paste(getwd(),"/Coursera-SwiftKey.zip", sep=""))
+  unzip("Coursera-SwiftKey.zip")
+}
+
+## You can set your working directory to final/en_US...
+## and then use the filenames (wrapped in quotes)...
+## but I prefer to load the path into memory...
+path<-paste(getwd(),"/final/en_US", sep="")
+## and then load the filenames into memory.
+files<-list.files(path)
+##Here are the file names
+print(files)
+
+## If I had more files, I would use a loop for the next steps...
+## but for 3 files it is not worth it and in my opinion,
+## avoiding loops makes the code more readable and faster...
+
+## Load file paths into memory
+blogPath <- paste(path,"/", files[1],sep="")
+newsPath <- paste(path,"/", files[2],sep="")
+twitPath <- paste(path,"/", files[3],sep="")
+
+## Get file sizes in Bytes
+blogBytes <- file.info(blogPath)$size
+newsBytes <- file.info(newsPath)$size
+twitBytes <- file.info(twitPath)$size
+## Convert bytes to megabytes (MB)
+blogMB <- blogBytes / 1024 ^ 2
+newsMB <- newsBytes / 1024 ^ 2
+twitMB <- twitBytes / 1024 ^ 2
+## Get the number of lines
+blogLines <- length(count.fields(blogPath, sep="\n"))
+newsLines <- length(count.fields(newsPath, sep="\n"))
+twitLines <- length(count.fields(twitPath, sep="\n"))
+
+## Next, I will read in all of the data, but later I will take a subsample.
+## The raw binary (rb) method was the only way I was able to read in the news data. 
+## I skipped the embedded nuls in all, though these were only in the twitter data set.
+con <- file(blogPath, open="rb")
+blog<-readLines(con, skipNul = TRUE)
+close(con)
+
+con <- file(newsPath, open="rb")
+news<-readLines(con, skipNul = TRUE)
+close(con)
+
+con <- file(twitPath, open="rb")
+twit<-readLines(con, skipNul = TRUE)
+close(con)
+
+## Get the number of words per line using sapply and gregexpr base functions
+blogWords<-sapply(gregexpr("[[:alpha:]]+", blog), function(x) sum(x > 0))
+newsWords<-sapply(gregexpr("[[:alpha:]]+", news), function(x) sum(x > 0))
+twitWords<-sapply(gregexpr("[[:alpha:]]+", twit), function(x) sum(x > 0))
+
+## Alternative: Get the number of words in each line using stringi package
+##install.packages("stringi")
+##library(stringi)
+##blogWords <- stri_count_words(blog)
+##newsWords <- stri_count_words(news)                              
+##twitWords <- stri_count_words(twit)
+
+## Sum the number of words in each line to get total words
+blogWordsSum<-sum(blogWords)
+newsWordsSum<-sum(newsWords)
+twitWordsSum<-sum(twitWords)
+
+##Get the character count (per line) for each data set
+blogChar<-nchar(blog, type = "chars")
+newsChar<-nchar(news, type = "chars")
+twitChar<-nchar(twit, type = "chars")
+
+##Sum the character counts to get total number of characters
+blogCharSum<-sum(blogChar)
+newsCharSum<-sum(newsChar)
+twitCharSum<-sum(twitChar)
+
+## Alternative: Use the Unix command wc e.g. system("wc filepath")
+## This will give the lines, words and characters.
+## I trust Unix commands > R base functions > R packages :)
+
+df<-data.frame(File=c("Blogs", "News", "Twitter"),
+               fileSize = c(blogMB, newsMB, twitMB),
+               lineCount = c(blogLines, newsLines, twitLines),
+               wordCount = c(blogWordsSum, newsWordsSum, twitWordsSum),
+               charCount = c(blogCharSum,newsCharSum,twitCharSum),
+               wordMean = c(mean(blogWords), mean(newsWords), mean(twitWords)),
+               charMean = c(mean(blogChar), mean(newsChar), mean(twitChar))
+               )
+print(df)
+View(df)
+
+## So far, we made a table of raw data stats using only base functions (i.e. no dependencies)
+## Next, we will repeat the above using a sample of the data and then make some plots.
+
+library(tm)
+blogDTM <- DocumentTermMatrix(blog)
+
+## Aggregate all of the data together
+dat<- c(blog,news,twit)
+
+## 
+
+set.seed(20170219)
+#install.packages("tm")
+#install.packages("stats")
+library(stats)
+library(tm)
+
+
+lineTwitHash<-grep("#(\\d|\\w|_){2,}",lineTwit)
+lineTwit[lineTwitHash]
+
+datHash<-grep("#(\\d|\\w|_){2,}",dat)
+
+head(dat[datHash])
+
+con<-file(fileName,open="r")
+lineBlogs<-readLines(con) 
+longBlogs<-length(line)
+close(con)
+dat[datHash]
+```
+RegEx
+#.
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
