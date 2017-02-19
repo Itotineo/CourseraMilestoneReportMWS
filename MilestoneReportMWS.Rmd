@@ -142,7 +142,7 @@ blog10 <- blog[rbinom(length(blog)/10, length(blog), .5)]
 news10 <- news[rbinom(length(news)/10, length(news), .5)]
 twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
 
-
+?rbinom
 ## The next few steps are (almost) the same as above, except I use the samples.
 
 ## Get sample sizes in IEC megabytes (MB), or rather mebibytes (MiB) as per...
@@ -190,12 +190,8 @@ df10 <- data.frame(File=c("Blogs Sample", "News Sample", "Twitter Sample"),
                wordMean = c(mean(blog10Words), mean(news10Words), mean(twit10Words)),
                charMean = c(mean(blog10Char), mean(news10Char), mean(twit10Char))
                )
-print(df10)
+
 View(df10)
-
-
-
-
 
 ## Data cleaning
 #install.packages("tm")
@@ -203,17 +199,26 @@ View(df10)
 library(stats)
 library(tm)
 ## Put all of the data samples together
+dat<- c(blog,news,twit)
 dat10<- c(blog10,news10,twit10)
+print(dat10)
+dat10NoPunc<- removePunctuation(dat10)
+grep("xf0",twit10,value = TRUE)
+print(twit10)
+class(twit10)
+twit10Uniq<-unique(twit10)
+## I noticed a lot of weird characters in my output file,
+## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
+## It turns out these are emojis
+## setting encoding to "UTF-8" did not help with this problem
 ## Convert everything to lowercase 
-dat10Lower<- tolower(dat10)
+dat10Lower<- tolower(dat10NoPunc)
 ## Remove stop words, multiple spaces and punctuation
 dat10WS<- stripWhitespace(dat10Lower)
 dat10NoStop <- removeWords(dat10WS, stopwords("english"))
-## I noticed a lot of weird characters in my output file,
-## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
-## setting encoding to "UTF-8" fixed this problem
+
 print(dat10NoStop)
-dat10NoPunc<- removePunctuation(dat10NoStop)
+
 
 ## I was not sure whether to remove profanity...
 ## because I didn't like the list of "bad" words I found on github e.g.
