@@ -134,15 +134,14 @@ View(df)
 ## First, I will set the seed so that I can obtain the same sample later. 
 set.seed(20170219)
 ## For whatever reason, the sample function (as below) truncated the news dataset 
-#blog10 <- sample(blog, size = blogLines / 10, replace = FALSE)
-#news10 <- sample(news, size = newsLines / 10, replace = FALSE)
-#twit10 <- sample(twit, size = twitLines / 10, replace = FALSE)
-##  I use the rbinom subsetting method below and it works just fine.
-blog10 <- blog[rbinom(length(blog)/10, length(blog), .5)]
-news10 <- news[rbinom(length(news)/10, length(news), .5)]
-twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
+blog10 <- sample(blog, size = length(blog) / 10, replace = FALSE)
+news10 <- sample(news, size = length(news)/10, replace = FALSE)
+twit10 <- sample(twit, size = length(twit) / 10, replace = FALSE)
+##  I used the rbinom subsetting method below and it did not work for me.
+#blog10 <- blog[rbinom(length(blog)/10, length(blog), .5)]
+#news10 <- news[rbinom(length(news)/10, length(news), .5)]
+#twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
 
-?rbinom
 ## The next few steps are (almost) the same as above, except I use the samples.
 
 ## Get sample sizes in IEC megabytes (MB), or rather mebibytes (MiB) as per...
@@ -199,26 +198,19 @@ View(df10)
 library(stats)
 library(tm)
 ## Put all of the data samples together
-dat<- c(blog,news,twit)
+#dat<- c(blog,news,twit)
 dat10<- c(blog10,news10,twit10)
-print(dat10)
+## Remove stop words, multiple spaces and punctuation
 dat10NoPunc<- removePunctuation(dat10)
-grep("xf0",twit10,value = TRUE)
-print(twit10)
+dat10NoWS<- stripWhitespace(dat10NoPunc)
+dat10NoStop <- removeWords(dat10NoWS, stopwords("english"))
+
+grep("started with",dat10NoStop,value = TRUE)
+print(dat10NoPunc)
 class(twit10)
 twit10Uniq<-unique(twit10)
-## I noticed a lot of weird characters in my output file,
-## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
-## It turns out these are emojis
-## setting encoding to "UTF-8" did not help with this problem
-## Convert everything to lowercase 
-dat10Lower<- tolower(dat10NoPunc)
-## Remove stop words, multiple spaces and punctuation
-dat10WS<- stripWhitespace(dat10Lower)
-dat10NoStop <- removeWords(dat10WS, stopwords("english"))
-
+twitUniq<-unique(twit)
 print(dat10NoStop)
-
 
 ## I was not sure whether to remove profanity...
 ## because I didn't like the list of "bad" words I found on github e.g.
@@ -244,12 +236,28 @@ profan<-c(profan1, profan2)
 profan<-profan[-1]
 profan<-profan[-length(profan)]
 ## Remove profanity
-dat10NoProfan <- removeWords(dat10NoPunc, profan) 
+dat10NoProfan <- removeWords(dat10NoStop, profan) 
 
 ## Find out the object size difference after removing profanity
 object.size(dat10NoPunc)
 object.size(dat10NoProfan)
 object.size(dat10NoPunc)-object.size(dat10NoProfan)
+
+## I noticed a lot of weird characters in my output file,
+## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
+## when I used the tolower function.
+## I tried the stringi package stri_trans_tolower function...
+## It appears to have worked great.
+
+## Convert everything to lowercase 
+#dat10Lower<-sapply(dat10NoStop, tolower)
+#dat10Lower<- tm_map(corp, tolower)
+#dat10Lower<- tolower(dat10NoStop)
+#corp<-Corpus(VectorSource(dat10NoStop))
+#print(dat10NoStop)
+library(stringi)
+dat10Lower <- stri_trans_tolower(dat10NoProfan)
+
 
 ## I was not able to install RWeka package, because of a java version problem.
 ## Instead of trying to figure it out, I used the ngram_tokenizer snippet
@@ -259,7 +267,7 @@ download.file("https://raw.githubusercontent.com/zero323/r-snippets/master/R/ngr
     destfile = paste(getwd(),"/ngram_tokenizer.R", sep=""))
 source("ngram_Tokenizer.R")
 unigram_tokenizer <- ngram_tokenizer(1)
-uniList <- unigram_tokenizer(dat10NoProfan)
+uniList <- unigram_tokenizer(dat10Lower)
 freqNames <- as.vector(names(table(unlist(uniList))))
 freqCount <- as.numeric(table(unlist(uniList)))
 dfUni <- data.frame(Word = freqNames,
@@ -269,7 +277,7 @@ dfUniSort<-dfUni[order(-Count),]
 detach(dfUni)
 
 bigram_tokenizer <- ngram_tokenizer(2)
-biList <- bigram_tokenizer(dat10NoProfan)
+biList <- bigram_tokenizer(dat10Lower)
 freqNames <- as.vector(names(table(unlist(biList))))
 freqCount <- as.numeric(table(unlist(biList)))
 dfBi <- data.frame(Word = freqNames,
@@ -279,7 +287,7 @@ dfBiSort<-dfBi[order(-Count),]
 detach(dfBi)
 
 trigram_tokenizer <- ngram_tokenizer(3)
-triList <- trigram_tokenizer(dat10NoProfan)
+triList <- trigram_tokenizer(dat10Lower)
 freqNames <- as.vector(names(table(unlist(triList))))
 freqCount <- as.numeric(table(unlist(triList)))
 dfTri <- data.frame(Word = freqNames,
@@ -289,7 +297,36 @@ dfTriSort<-dfTri[order(-Count),]
 detach(dfTri)
 
 ## After preparing the Ngram lists, I am ready to visualize the data
-## Word clouds are largely useless in my opinion, but why not
+## First, I will make some histograms to show the most frequent words
+
+hist(dfUni$Count,
+     main="Histogram for Air Passengers", 
+     xlab="Passengers", 
+     border="blue", 
+     col="green",
+     xlim=c(100,700),
+     las=1, 
+     breaks=5)
+
+hist(dfBi)
+hist(dfTri)
+
+install.packages("plotly")
+library(plotly)
+
+p <- plot_ly(x = dfUni$Word, type = "histogram")
+
+p
+p <- plot_ly(alpha=0.6) %>%
+  add_histogram(x=dfUni$Word) %>%
+  add_histogram(dfBi$Word) %>%
+  add_histogram(dfTri$Word) %>%
+  layout(barmode = "overlay")
+
+## Word clouds are largely useless in my opinion, but why not show a few? :)
+install.packages("wordcloud")
+library(wordcloud)
+
 ?sort                 
 ?unlist
 names(unigram.df) <- c("word","freq")
