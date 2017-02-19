@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## S
+## R Markdown document
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -23,14 +23,14 @@ readLines(con, 1) ## Read the first line of text
 readLines(con, 1) ## Read the next line of text 
 readLines(con, 5) ## Read in the next 5 lines of text 
 close(con) ## It's important to close the connection when you are done
-setwd("C:/Users/skarzynskimw/Coursera-SwiftKey/final/en_US")
-list.files()
+
 ```{r cars}
 
 ## Download the raw data file...
 ## Unless you already have it in your working directory
 if (!file.exists("Coursera-SwiftKey.zip")) {
-  download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip", destfile = paste(getwd(),"/Coursera-SwiftKey.zip", sep=""))
+  download.file("https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip",
+  destfile = paste(getwd(),"/Coursera-SwiftKey.zip", sep=""))
   unzip("Coursera-SwiftKey.zip")
 }
 
@@ -56,7 +56,12 @@ twitPath <- paste(path,"/", files[3],sep="")
 blogBytes <- file.info(blogPath)$size
 newsBytes <- file.info(newsPath)$size
 twitBytes <- file.info(twitPath)$size
-## Convert bytes to megabytes (MB)
+## Next, we will convert bytes to megabytes (MB) using...
+## International Electrotechnical Commission (IEC) unit definition.
+## I prefer International System of Units (SI) units, because...
+## kilo and mega mean 1000 and 1000^2, respectively, and...
+## IEC units are actually called kibibytes and mebibytes. However...
+## My preference is biased by the fact that I am laborartory scientist :)
 blogMB <- blogBytes / 1024 ^ 2
 newsMB <- newsBytes / 1024 ^ 2
 twitMB <- twitBytes / 1024 ^ 2
@@ -66,18 +71,18 @@ newsLines <- length(count.fields(newsPath, sep="\n"))
 twitLines <- length(count.fields(twitPath, sep="\n"))
 
 ## Next, I will read in all of the data, but later I will take a subsample.
-## The raw binary (rb) method was the only way I was able to read in the news data. 
+## The raw binary (rb) method was the only way I could read in the full news data set. 
 ## I skipped the embedded nuls in all, though these were only in the twitter data set.
 con <- file(blogPath, open="rb")
-blog<-readLines(con, skipNul = TRUE)
+blog<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
 close(con)
 
 con <- file(newsPath, open="rb")
-news<-readLines(con, skipNul = TRUE)
+news<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
 close(con)
 
 con <- file(twitPath, open="rb")
-twit<-readLines(con, skipNul = TRUE)
+twit<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
 close(con)
 
 ## Get the number of words per line using sapply and gregexpr base functions
@@ -119,30 +124,181 @@ df<-data.frame(File=c("Blogs", "News", "Twitter"),
                wordMean = c(mean(blogWords), mean(newsWords), mean(twitWords)),
                charMean = c(mean(blogChar), mean(newsChar), mean(twitChar))
                )
-print(df)
+
 View(df)
 
 ## So far, we made a table of raw data stats using only base functions (i.e. no dependencies)
 ## Next, we will repeat the above using a sample of the data and then make some plots.
+## I could sample by number of characters or words, but I will subset by line count.
 
-library(tm)
-blogDTM <- DocumentTermMatrix(blog)
-
-## Aggregate all of the data together
-dat<- c(blog,news,twit)
-
-## 
-
+## First, I will set the seed so that I can obtain the same sample later. 
 set.seed(20170219)
+## For whatever reason, the sample function (as below) truncated the news dataset 
+#blog10 <- sample(blog, size = blogLines / 10, replace = FALSE)
+#news10 <- sample(news, size = newsLines / 10, replace = FALSE)
+#twit10 <- sample(twit, size = twitLines / 10, replace = FALSE)
+##  I use the rbinom subsetting method below and it works just fine.
+blog10 <- blog[rbinom(length(blog)/10, length(blog), .5)]
+news10 <- news[rbinom(length(news)/10, length(news), .5)]
+twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
+
+
+## The next few steps are (almost) the same as above, except I use the samples.
+
+## Get sample sizes in IEC megabytes (MB), or rather mebibytes (MiB) as per...
+## my IEC vs. SI unit rant above :)
+## MB still makes sense here even though I took a 1/10 sample of the datasets.
+blog10MB <- format(object.size(blog10), standard = "IEC", units = "MiB")
+news10MB <- format(object.size(news10), standard = "IEC", units = "MiB")
+twit10MB <- format(object.size(twit10), standard = "IEC", units = "MiB")
+
+## Get the number of lines
+blog10Lines <- length(blog10)
+news10Lines <- length(news10)
+twit10Lines <- length(twit10)
+
+
+## Get the number of words per line using sapply and gregexpr base functions
+blog10Words<-sapply(gregexpr("[[:alpha:]]+", blog10), function(x) sum(x > 0))
+news10Words<-sapply(gregexpr("[[:alpha:]]+", news10), function(x) sum(x > 0))
+twit10Words<-sapply(gregexpr("[[:alpha:]]+", twit10), function(x) sum(x > 0))
+
+## Sum the number of words in each line to get total words
+blog10WordsSum<-sum(blog10Words)
+news10WordsSum<-sum(news10Words)
+twit10WordsSum<-sum(twit10Words)
+
+##Get the character count (per line) for each data set
+blog10Char<-nchar(blog10, type = "chars")
+news10Char<-nchar(news10, type = "chars")
+twit10Char<-nchar(twit10, type = "chars")
+
+##Sum the character counts to get total number of characters
+blog10CharSum<-sum(blog10Char)
+news10CharSum<-sum(news10Char)
+twit10CharSum<-sum(twit10Char)
+
+## Alternative: Use the Unix command wc e.g. system("wc filepath")
+## This will give the lines, words and characters.
+## For simple things like these, I trust Unix commands > R base functions > R packages :)
+
+df10 <- data.frame(File=c("Blogs Sample", "News Sample", "Twitter Sample"),
+               fileSize = c(blog10MB, news10MB, twit10MB),
+               lineCount = c(blog10Lines, news10Lines, twit10Lines),
+               wordCount = c(blog10WordsSum, news10WordsSum, twit10WordsSum),
+               charCount = c(blog10CharSum,news10CharSum,twit10CharSum),
+               wordMean = c(mean(blog10Words), mean(news10Words), mean(twit10Words)),
+               charMean = c(mean(blog10Char), mean(news10Char), mean(twit10Char))
+               )
+print(df10)
+View(df10)
+
+
+
+
+
+## Data cleaning
 #install.packages("tm")
 #install.packages("stats")
 library(stats)
 library(tm)
+## Put all of the data samples together
+dat10<- c(blog10,news10,twit10)
+## Convert everything to lowercase 
+dat10Lower<- tolower(dat10)
+## Remove stop words, multiple spaces and punctuation
+dat10WS<- stripWhitespace(dat10Lower)
+dat10NoStop <- removeWords(dat10WS, stopwords("english"))
+## I noticed a lot of weird characters in my output file,
+## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
+## setting encoding to "UTF-8" fixed this problem
+print(dat10NoStop)
+dat10NoPunc<- removePunctuation(dat10NoStop)
+
+## I was not sure whether to remove profanity...
+## because I didn't like the list of "bad" words I found on github e.g.
+## https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en
+## https://gist.github.com/jamiew/1112488
+## There are perfectly normal (in my opinion) words mixed in those lists e.g. anatomical words
+## We are all adults here (I assume) and I think the profane words can also be interesting for analysis
+## I decided to remove profanity because I was terrified at the thought that N-word would be...
+## one of the top ranked unigrams by frequency :/
+## In the end it did not make a big difference in object size, so probably not a big loss in data.
+
+## download profanity word lists
+download.file("https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en", 
+    destfile = paste(getwd(),"/profan1.csv", sep=""))
+download.file("https://gist.githubusercontent.com/jamiew/1112488/raw/7ca9b1669e1c24b27c66174762cb04e14cf05aa7/google_twunter_lol", 
+    destfile = paste(getwd(),"/profan2.csv", sep=""))
+##Read in profanity word lists
+profan1<- as.character(read.csv("profan1.csv", header=FALSE))
+profan2<- as.character(row.names(read.csv("profan2.csv", header=TRUE, sep = ":")))
+## Put the two lists together
+profan<-c(profan1, profan2)
+## Trim the first and last line of profan
+profan<-profan[-1]
+profan<-profan[-length(profan)]
+## Remove profanity
+dat10NoProfan <- removeWords(dat10NoPunc, profan) 
+
+## Find out the object size difference after removing profanity
+object.size(dat10NoPunc)
+object.size(dat10NoProfan)
+object.size(dat10NoPunc)-object.size(dat10NoProfan)
+
+## I was not able to install RWeka package, because of a java version problem.
+## Instead of trying to figure it out, I used the ngram_tokenizer snippet
+## created by Maciej Szymkiewicz, aka zero323 on Github.
+
+download.file("https://raw.githubusercontent.com/zero323/r-snippets/master/R/ngram_tokenizer.R", 
+    destfile = paste(getwd(),"/ngram_tokenizer.R", sep=""))
+source("ngram_Tokenizer.R")
+unigram_tokenizer <- ngram_tokenizer(1)
+uniList <- unigram_tokenizer(dat10NoProfan)
+freqNames <- as.vector(names(table(unlist(uniList))))
+freqCount <- as.numeric(table(unlist(uniList)))
+dfUni <- data.frame(Word = freqNames,
+                    Count = freqCount)
+attach(dfUni)
+dfUniSort<-dfUni[order(-Count),]
+detach(dfUni)
+
+bigram_tokenizer <- ngram_tokenizer(2)
+biList <- bigram_tokenizer(dat10NoProfan)
+freqNames <- as.vector(names(table(unlist(biList))))
+freqCount <- as.numeric(table(unlist(biList)))
+dfBi <- data.frame(Word = freqNames,
+                    Count = freqCount)
+attach(dfBi)
+dfBiSort<-dfBi[order(-Count),]
+detach(dfBi)
+
+trigram_tokenizer <- ngram_tokenizer(3)
+triList <- trigram_tokenizer(dat10NoProfan)
+freqNames <- as.vector(names(table(unlist(triList))))
+freqCount <- as.numeric(table(unlist(triList)))
+dfTri <- data.frame(Word = freqNames,
+                    Count = freqCount)
+attach(dfTri)
+dfTriSort<-dfTri[order(-Count),]
+detach(dfTri)
+
+## After preparing the Ngram lists, I am ready to visualize the data
+## Word clouds are largely useless in my opinion, but why not
+?sort                 
+?unlist
+names(unigram.df) <- c("word","freq")
+unigram.df <- unigram.df[with(unigram.df, order(-unigram.df$freq)),]
+row.names(unigram.df) <- NULL
+save(unigram.df, file="unigram.Rda")
 
 
+class(crude)
+class(corp)
+crude<-data("crude")
 lineTwitHash<-grep("#(\\d|\\w|_){2,}",lineTwit)
 lineTwit[lineTwitHash]
-
+head(corp)
 datHash<-grep("#(\\d|\\w|_){2,}",dat)
 
 head(dat[datHash])
