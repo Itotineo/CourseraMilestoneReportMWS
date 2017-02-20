@@ -6,17 +6,16 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
-## R Markdown document
+# Milestone Report Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+As part of Data Science Specialization Capstone experience, 
+I have demonstrate the ability to work with relatively unstructured text data.
+The first step is to download and read in the data. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-
-This was the code offered in the course materials for getting and cleaning the data (Task 1) for reading and loading in a subset of data.
+The code below is from the course materials. It shows how to for read data from txt files using the readLines function. 
 
 con <- file("en_US.twitter.txt", "r") 
 readLines(con, 1) ## Read the first line of text 
@@ -24,7 +23,8 @@ readLines(con, 1) ## Read the next line of text
 readLines(con, 5) ## Read in the next 5 lines of text 
 close(con) ## It's important to close the connection when you are done
 
-```{r cars}
+## Download the data
+```{r}
 
 ## Download the raw data file...
 ## Unless you already have it in your working directory
@@ -33,7 +33,9 @@ if (!file.exists("Coursera-SwiftKey.zip")) {
   destfile = paste(getwd(),"/Coursera-SwiftKey.zip", sep=""))
   unzip("Coursera-SwiftKey.zip")
 }
-
+```
+## Load filepaths into memory
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## You can set your working directory to final/en_US...
 ## and then use the filenames (wrapped in quotes)...
 ## but I prefer to load the path into memory...
@@ -51,7 +53,30 @@ print(files)
 blogPath <- paste(path,"/", files[1],sep="")
 newsPath <- paste(path,"/", files[2],sep="")
 twitPath <- paste(path,"/", files[3],sep="")
+```
 
+## Read in the data
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
+## First, I will read in all of the data, but later I will take a subsample.
+## The raw binary (rb) method was the only way I could read in the full news data set. 
+## I skipped the embedded nuls in all, though these were only in the twitter data set.
+con <- file(blogPath, open="rb")
+blog<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
+close(con)
+
+con <- file(newsPath, open="rb")
+news<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
+close(con)
+
+con <- file(twitPath, open="rb")
+twit<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
+close(con)
+```
+##Obtain basic statistics describing the three datasets
+Now that the data are read into memory, 
+we can obtain basic information about the datafiles (e.g. file sizes)
+and their contents (e.g. word counts)
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## Get file sizes in Bytes
 blogBytes <- file.info(blogPath)$size
 newsBytes <- file.info(newsPath)$size
@@ -69,21 +94,6 @@ twitMB <- twitBytes / 1024 ^ 2
 blogLines <- length(count.fields(blogPath, sep="\n"))
 newsLines <- length(count.fields(newsPath, sep="\n"))
 twitLines <- length(count.fields(twitPath, sep="\n"))
-
-## Next, I will read in all of the data, but later I will take a subsample.
-## The raw binary (rb) method was the only way I could read in the full news data set. 
-## I skipped the embedded nuls in all, though these were only in the twitter data set.
-con <- file(blogPath, open="rb")
-blog<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
-close(con)
-
-con <- file(newsPath, open="rb")
-news<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
-close(con)
-
-con <- file(twitPath, open="rb")
-twit<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
-close(con)
 
 ## Get the number of words per line using sapply and gregexpr base functions
 blogWords<-sapply(gregexpr("[[:alpha:]]+", blog), function(x) sum(x > 0))
@@ -115,7 +125,10 @@ twitCharSum<-sum(twitChar)
 ## Alternative: Use the Unix command wc e.g. system("wc filepath")
 ## This will give the lines, words and characters.
 ## I trust Unix commands > R base functions > R packages :)
-
+```
+##Generate table showing the basic statistics 
+This is the first deliverable and nicely summarizes information about our datasets (from the previous code chunk).
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 df<-data.frame(File=c("Blogs", "News", "Twitter"),
                fileSize = c(blogMB, newsMB, twitMB),
                lineCount = c(blogLines, newsLines, twitLines),
@@ -126,12 +139,14 @@ df<-data.frame(File=c("Blogs", "News", "Twitter"),
                )
 
 View(df)
+```
 
-## So far, we made a table of raw data stats using only base functions (i.e. no dependencies)
-## Next, we will repeat the above using a sample of the data and then make some plots.
-## I could sample by number of characters or words, but I will subset by line count.
-
-## First, I will set the seed so that I can obtain the same sample later. 
+So far, we made a table of raw data stats using only base functions (i.e. no dependencies)
+## Obtain a sample of the data
+Next, we will obtain the same set of statistics for a sample of the data.
+I could sample by number of characters or words, but I will sample by line count.
+First, I will set the seed so that I can obtain the same exact samples later. 
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 set.seed(20170219)
 ## For whatever reason, the sample function (as below) truncated the news dataset 
 blog10 <- sample(blog, size = length(blog) / 10, replace = FALSE)
@@ -142,7 +157,9 @@ twit10 <- sample(twit, size = length(twit) / 10, replace = FALSE)
 #news10 <- news[rbinom(length(news)/10, length(news), .5)]
 #twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
 
-## The next few steps are (almost) the same as above, except I use the samples.
+## 
+## The next few steps are (almost) the same as before, 
+## except this time I will use the samples instead of the full datasets.
 
 ## Get sample sizes in IEC megabytes (MB), or rather mebibytes (MiB) as per...
 ## my IEC vs. SI unit rant above :)
@@ -205,13 +222,6 @@ dat10NoPunc<- removePunctuation(dat10)
 dat10NoWS<- stripWhitespace(dat10NoPunc)
 dat10NoStop <- removeWords(dat10NoWS, stopwords("english"))
 
-grep("started with",dat10NoStop,value = TRUE)
-print(dat10NoPunc)
-class(twit10)
-twit10Uniq<-unique(twit10)
-twitUniq<-unique(twit)
-print(dat10NoStop)
-
 ## I was not sure whether to remove profanity...
 ## because I didn't like the list of "bad" words I found on github e.g.
 ## https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en
@@ -247,7 +257,8 @@ object.size(dat10NoPunc)-object.size(dat10NoProfan)
 ## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
 ## when I used the tolower function.
 ## I tried the stringi package stri_trans_tolower function...
-## It appears to have worked great.
+## Not sure which one is better, I think the problem may be...
+## in the data before I began preprocessing.
 
 ## Convert everything to lowercase 
 #dat10Lower<-sapply(dat10NoStop, tolower)
@@ -258,6 +269,14 @@ object.size(dat10NoPunc)-object.size(dat10NoProfan)
 library(stringi)
 dat10Lower <- stri_trans_tolower(dat10NoProfan)
 
+## Remove special symbols
+dat10azONLY <- gsub("ð|â|???|T|o|'|³|¾|ñ|f|.|º|°|»|²|¼|>|<|¹|·|¸|¦|~|~", "", dat10Lower) 
+##,|:|'|³|¾|ñ|f|.|º|°|"|»|>|¼|<|¸
+
+dat10NoPunc2<- removePunctuation(dat10azONLY)
+dat10NoWS2<- stripWhitespace(dat10NoPunc2)
+#Remove single and two letter words
+dat10NoShort <- removeWords(dat10NoWS2, "\\b\\w{1,2}\\b") 
 
 ## I was not able to install RWeka package, because of a java version problem.
 ## Instead of trying to figure it out, I used the ngram_tokenizer snippet
@@ -267,7 +286,7 @@ download.file("https://raw.githubusercontent.com/zero323/r-snippets/master/R/ngr
     destfile = paste(getwd(),"/ngram_tokenizer.R", sep=""))
 source("ngram_Tokenizer.R")
 unigram_tokenizer <- ngram_tokenizer(1)
-uniList <- unigram_tokenizer(dat10Lower)
+uniList <- unigram_tokenizer(dat10NoShort)
 freqNames <- as.vector(names(table(unlist(uniList))))
 freqCount <- as.numeric(table(unlist(uniList)))
 dfUni <- data.frame(Word = freqNames,
@@ -277,7 +296,7 @@ dfUniSort<-dfUni[order(-Count),]
 detach(dfUni)
 
 bigram_tokenizer <- ngram_tokenizer(2)
-biList <- bigram_tokenizer(dat10Lower)
+biList <- bigram_tokenizer(dat10NoShort)
 freqNames <- as.vector(names(table(unlist(biList))))
 freqCount <- as.numeric(table(unlist(biList)))
 dfBi <- data.frame(Word = freqNames,
@@ -287,7 +306,7 @@ dfBiSort<-dfBi[order(-Count),]
 detach(dfBi)
 
 trigram_tokenizer <- ngram_tokenizer(3)
-triList <- trigram_tokenizer(dat10Lower)
+triList <- trigram_tokenizer(dat10NoShort)
 freqNames <- as.vector(names(table(unlist(triList))))
 freqCount <- as.numeric(table(unlist(triList)))
 dfTri <- data.frame(Word = freqNames,
@@ -299,24 +318,19 @@ detach(dfTri)
 ## After preparing the Ngram lists, I am ready to visualize the data
 ## First, I will make some histograms to show the most frequent words
 
-hist(dfUni$Count,
-     main="Histogram for Air Passengers", 
-     xlab="Passengers", 
-     border="blue", 
-     col="green",
-     xlim=c(100,700),
-     las=1, 
-     breaks=5)
 
-hist(dfBi)
-hist(dfTri)
+barplot(dfUniSort[1:20,2],col="lightblue",
+        names.arg = dfUniSort$Word[1:20],srt = 45,
+        space=0.1, xlim=c(0,20),las=2)
 
 install.packages("plotly")
+
 library(plotly)
 
-p <- plot_ly(x = dfUni$Word, type = "histogram")
+p <- plot_ly(x = dfUniSort[1:20,1], type = "histogram")
 
 p
+remove(freqCount,freqNames)
 p <- plot_ly(alpha=0.6) %>%
   add_histogram(x=dfUni$Word) %>%
   add_histogram(dfBi$Word) %>%
