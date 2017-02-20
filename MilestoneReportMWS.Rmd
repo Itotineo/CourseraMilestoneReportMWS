@@ -22,8 +22,9 @@ readLines(con, 1) ## Read the first line of text
 readLines(con, 1) ## Read the next line of text 
 readLines(con, 5) ## Read in the next 5 lines of text 
 close(con) ## It's important to close the connection when you are done
-
-## Download the data
+## Download and read in the data
+The data are available at this url: https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
+### Download the data
 ```{r}
 
 ## Download the raw data file...
@@ -34,7 +35,7 @@ if (!file.exists("Coursera-SwiftKey.zip")) {
   unzip("Coursera-SwiftKey.zip")
 }
 ```
-## Load filepaths into memory
+### Load filepaths into memory
 ```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## You can set your working directory to final/en_US...
 ## and then use the filenames (wrapped in quotes)...
@@ -55,7 +56,7 @@ newsPath <- paste(path,"/", files[2],sep="")
 twitPath <- paste(path,"/", files[3],sep="")
 ```
 
-## Read in the data
+### Read in the data
 ```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## First, I will read in all of the data, but later I will take a subsample.
 ## The raw binary (rb) method was the only way I could read in the full news data set. 
@@ -72,21 +73,23 @@ con <- file(twitPath, open="rb")
 twit<-readLines(con, skipNul = TRUE, encoding = "UTF-8")
 close(con)
 ```
-##Obtain basic statistics describing the three datasets
+## Obtain basic statistics describing the three datasets
 Now that the data are read into memory, 
 we can obtain basic information about the datafiles (e.g. file sizes)
-and their contents (e.g. word counts)
+and their contents (e.g. word counts).
+First I obtain file sizes in bytes.
+Then I will convert bytes to mebibytes (MiB).
+Mebibytes are part of the International Electrotechnical Commission (IEC) system.
+Personally, I prefer International System of Units (SI) units, because
+I think SI units e.g. kilobytes and megabytes (1000 and 1000^2 bytes respectively) 
+make more sense than IEC units e.g. kibibytes and mebibytes (1000 and 1000^2 respectively) 
+However, my preference is biased by the fact that I am laboratory scientist :)
 ```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## Get file sizes in Bytes
 blogBytes <- file.info(blogPath)$size
 newsBytes <- file.info(newsPath)$size
 twitBytes <- file.info(twitPath)$size
-## Next, we will convert bytes to megabytes (MB) using...
-## International Electrotechnical Commission (IEC) unit definition.
-## I prefer International System of Units (SI) units, because...
-## kilo and mega mean 1000 and 1000^2, respectively, and...
-## IEC units are actually called kibibytes and mebibytes. However...
-## My preference is biased by the fact that I am laborartory scientist :)
+##Convert bytes to mebibytes(MiB)
 blogMB <- blogBytes / 1024 ^ 2
 newsMB <- newsBytes / 1024 ^ 2
 twitMB <- twitBytes / 1024 ^ 2
@@ -126,7 +129,7 @@ twitCharSum<-sum(twitChar)
 ## This will give the lines, words and characters.
 ## I trust Unix commands > R base functions > R packages :)
 ```
-##Generate table showing the basic statistics 
+### Generate a table showing the basic dataset statistics 
 This is the first deliverable and nicely summarizes information about our datasets (from the previous code chunk).
 ```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 df<-data.frame(File=c("Blogs", "News", "Twitter"),
@@ -142,10 +145,12 @@ View(df)
 ```
 
 So far, we made a table of raw data stats using only base functions (i.e. no dependencies)
-## Obtain a sample of the data
-Next, we will obtain the same set of statistics for a sample of the data.
-I could sample by number of characters or words, but I will sample by line count.
-First, I will set the seed so that I can obtain the same exact samples later. 
+## Sample the data and obtain descriptive statistics
+### Obtain a sample of the data
+Now, we will obtain the same set of statistics for a sample of the data.
+First, I will set the seed so that I can obtain the same exact samples later.
+Next, I could sample by number of characters or words, but I will sample by line count.
+ 
 ```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 set.seed(20170219)
 ## For whatever reason, the sample function (as below) truncated the news dataset 
@@ -156,14 +161,17 @@ twit10 <- sample(twit, size = length(twit) / 10, replace = FALSE)
 #blog10 <- blog[rbinom(length(blog)/10, length(blog), .5)]
 #news10 <- news[rbinom(length(news)/10, length(news), .5)]
 #twit10 <- twit[rbinom(length(twit)/10, length(twit), .5)]
+```
 
-## 
-## The next few steps are (almost) the same as before, 
-## except this time I will use the samples instead of the full datasets.
+### Obtain basic statistics describing the three dataset samples
+The next few steps are (almost) the same as before, 
+except this time I will use the samples instead of the full datasets.
 
-## Get sample sizes in IEC megabytes (MB), or rather mebibytes (MiB) as per...
-## my IEC vs. SI unit rant above :)
-## MB still makes sense here even though I took a 1/10 sample of the datasets.
+First, I will obtain sample sizes in  mebibytes (MiB),
+as per my IEC vs. SI unit rant above :)
+MiB still makes sense here even though I took a 1/10 sample of the datasets.
+If I took a smaller sample it would be better to use kebibyte units.
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 blog10MB <- format(object.size(blog10), standard = "IEC", units = "MiB")
 news10MB <- format(object.size(news10), standard = "IEC", units = "MiB")
 twit10MB <- format(object.size(twit10), standard = "IEC", units = "MiB")
@@ -197,7 +205,12 @@ twit10CharSum<-sum(twit10Char)
 ## Alternative: Use the Unix command wc e.g. system("wc filepath")
 ## This will give the lines, words and characters.
 ## For simple things like these, I trust Unix commands > R base functions > R packages :)
-
+```
+### Generate a table showing the basic dataset statistics 
+This is the second deliverable and nicely summarizes information about our samples (from the previous code chunk). 
+It is important to make sure that the values in this table match the previous table.
+If this is not the case, then it may indicate that something went wrong with the sampling.
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 df10 <- data.frame(File=c("Blogs Sample", "News Sample", "Twitter Sample"),
                fileSize = c(blog10MB, news10MB, twit10MB),
                lineCount = c(blog10Lines, news10Lines, twit10Lines),
@@ -208,30 +221,38 @@ df10 <- data.frame(File=c("Blogs Sample", "News Sample", "Twitter Sample"),
                )
 
 View(df10)
+```
 
 ## Data cleaning
+For the data cleaning steps, I will first put all three of the datasets together.
+Then I will remove stop words, extra whitespace, punctuation, profanity, one-letter words and symbols. For many of these steps, I will use the tm package.
+### Put all of the dataset samples together
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 #install.packages("tm")
-#install.packages("stats")
-library(stats)
 library(tm)
 ## Put all of the data samples together
 #dat<- c(blog,news,twit)
 dat10<- c(blog10,news10,twit10)
-## Remove stop words, multiple spaces and punctuation
+```
+
+### Remove stop words, multiple spaces and punctuation
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 dat10NoPunc<- removePunctuation(dat10)
 dat10NoWS<- stripWhitespace(dat10NoPunc)
 dat10NoStop <- removeWords(dat10NoWS, stopwords("english"))
+```
+### Remove profanity
+At first, I was not sure whether to remove profanity...
+because I didn't like the list of "bad" words I found on github e.g.
+https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en
+and https://gist.github.com/jamiew/1112488
+There are perfectly normal (in my opinion) words mixed in those lists e.g. anatomical words
+We are all adults here (I assume) and I think the profane words can also be interesting for analysis.
+I decided to remove profanity because
+I was terrified at the thought that N-word would be one of the top ranked unigrams by frequency :/
+In the end, it did not make a big difference in object size, so probably not a big loss in data.
 
-## I was not sure whether to remove profanity...
-## because I didn't like the list of "bad" words I found on github e.g.
-## https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en
-## https://gist.github.com/jamiew/1112488
-## There are perfectly normal (in my opinion) words mixed in those lists e.g. anatomical words
-## We are all adults here (I assume) and I think the profane words can also be interesting for analysis
-## I decided to remove profanity because I was terrified at the thought that N-word would be...
-## one of the top ranked unigrams by frequency :/
-## In the end it did not make a big difference in object size, so probably not a big loss in data.
-
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## download profanity word lists
 download.file("https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en", 
     destfile = paste(getwd(),"/profan1.csv", sep=""))
@@ -252,32 +273,46 @@ dat10NoProfan <- removeWords(dat10NoStop, profan)
 object.size(dat10NoPunc)
 object.size(dat10NoProfan)
 object.size(dat10NoPunc)-object.size(dat10NoProfan)
+```
 
 ## I noticed a lot of weird characters in my output file,
 ## e.g "â", "o", "î", "z","???","T","³","ð","¾","ñ", "~"...
-## when I used the tolower function.
-## I tried the stringi package stri_trans_tolower function...
-## Not sure which one is better, I think the problem may be...
-## in the data before I began preprocessing.
+## I think the problem may be in the data and unrelated to preprocessing.
 
-## Convert everything to lowercase 
-#dat10Lower<-sapply(dat10NoStop, tolower)
-#dat10Lower<- tm_map(corp, tolower)
-#dat10Lower<- tolower(dat10NoStop)
-#corp<-Corpus(VectorSource(dat10NoStop))
-#print(dat10NoStop)
+### Convert everything to lowercase 
+I came up with different methods for converting to lowercase including
+dat10Lower<-sapply(dat10NoStop, tolower)
+dat10Lower<- tm_map(corp, tolower)
+dat10Lower<- tolower(dat10NoStop)
+I went with the stringi package method below.
+Nevertheless, I think the examples above work just fine.
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 library(stringi)
 dat10Lower <- stri_trans_tolower(dat10NoProfan)
+```
 
-## Remove special symbols
+### Remove special symbols
+I decided to list the symbols I want removed.
+I know I can come up with simple regular expression to accomplish the same thing.
+ 
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 dat10azONLY <- gsub("ð|â|???|T|o|'|³|¾|ñ|f|.|º|°|»|²|¼|>|<|¹|·|¸|¦|~|~", "", dat10Lower) 
-##,|:|'|³|¾|ñ|f|.|º|°|"|»|>|¼|<|¸
-
+```
+### Remove one-letter words
+All non-alphanumeric characters should be removed by now, 
+but I remove punctuation again just to be sure.
+I also removed extra whitespace again, just in case and of the previous steps created new whitespace.
+I will remove any redundancy and improve efficiency for my final project app.
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 dat10NoPunc2<- removePunctuation(dat10azONLY)
 dat10NoWS2<- stripWhitespace(dat10NoPunc2)
-#Remove single and two letter words
-dat10NoShort <- removeWords(dat10NoWS2, "\\b\\w{1,2}\\b") 
+#Remove single letter words
+dat10NoShort <- removeWords(dat10NoWS2, "\\b\\w{1}\\b") 
+```
 
+##Tokenization
+Here I put together lists of unigrams, bigrams and trigrams.
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
 ## I was not able to install RWeka package, because of a java version problem.
 ## Instead of trying to figure it out, I used the ngram_tokenizer snippet
 ## created by Maciej Szymkiewicz, aka zero323 on Github.
@@ -314,67 +349,52 @@ dfTri <- data.frame(Word = freqNames,
 attach(dfTri)
 dfTriSort<-dfTri[order(-Count),]
 detach(dfTri)
+```
 
-## After preparing the Ngram lists, I am ready to visualize the data
-## First, I will make some histograms to show the most frequent words
-
-
-barplot(dfUniSort[1:20,2],col="lightblue",
+## Exploratory Data Analysis
+After preparing the Ngram lists, I am ready to visualize the data
+First, I will make some histograms to show the most frequent words
+### Unigram histogram
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
+par(mar = c(8,4,1,1) + 0.1, las = 2)
+barplot(dfUniSort[1:20,2],col="blue",
         names.arg = dfUniSort$Word[1:20],srt = 45,
-        space=0.1, xlim=c(0,20),las=2)
-
-install.packages("plotly")
-
-library(plotly)
-
-p <- plot_ly(x = dfUniSort[1:20,1], type = "histogram")
-
-p
-remove(freqCount,freqNames)
-p <- plot_ly(alpha=0.6) %>%
-  add_histogram(x=dfUni$Word) %>%
-  add_histogram(dfBi$Word) %>%
-  add_histogram(dfTri$Word) %>%
-  layout(barmode = "overlay")
-
-## Word clouds are largely useless in my opinion, but why not show a few? :)
-install.packages("wordcloud")
-library(wordcloud)
-
-?sort                 
-?unlist
-names(unigram.df) <- c("word","freq")
-unigram.df <- unigram.df[with(unigram.df, order(-unigram.df$freq)),]
-row.names(unigram.df) <- NULL
-save(unigram.df, file="unigram.Rda")
-
-
-class(crude)
-class(corp)
-crude<-data("crude")
-lineTwitHash<-grep("#(\\d|\\w|_){2,}",lineTwit)
-lineTwit[lineTwitHash]
-head(corp)
-datHash<-grep("#(\\d|\\w|_){2,}",dat)
-
-head(dat[datHash])
-
-con<-file(fileName,open="r")
-lineBlogs<-readLines(con) 
-longBlogs<-length(line)
-close(con)
-dat[datHash]
+        space=0.1, xlim=c(0,20),
+        main = "Top 20 Unigrams by Frequency",
+        cex.names = 1, xpd = FALSE)
 ```
-RegEx
-#.
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+### Bigram histogram
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
+par(mar = c(8,4,1,1) + 0.1, las = 2)
+barplot(dfBiSort[1:20,2],col="green",
+        names.arg = dfBiSort$Word[1:20],srt = 45,
+        space=0.1, xlim=c(0,20),
+        main = "Top 20 Bigrams by Frequency",
+        cex.names = 1, xpd = FALSE)
+```
+### Trigram histogram
+```{r echo=TRUE, eval=TRUE, warning=FALSE, error=FALSE}
+par(mar = c(8,4,1,1) + 0.1, las = 2)
+barplot(dfTriSort[1:20,2],col="red",
+        names.arg = dfTriSort$Word[1:20],srt = 45,
+        space=0.1, xlim=c(0,20),
+        main = "Top 20 Trigrams by Frequency",
+        cex.names = 1, xpd = FALSE)
+?barplot
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Exploratory Data Analysis Conclusions
+Based on the plots above, it appears that the data cleaning and tokenization steps worked.
+I think removing single letter words does not hurt. I concluded that I should not remove two-letter words, as the lack of the word "of" may result in some meaning being lost.
+I believe these steps work well but they take a long time and I need to think about efficiency when training my model.
+
+## Observations
+I noticed foreign words (mostly in Spanish) in the output files. These may cause problems, so I will work on a way of removing the words using a Spanish dictionary (word list). This will be similar to the approach of removing profanity. It would be great to make an app that could translate foreign words on the fly so that they can also be used in the analysis. That being said, I think however it will be better to simply remove foreign words to. 
+
+## Next steps
+For my app, I am interested in providing functionality for hash tags from the twitter data. The idea is to predict what may follow a hash tag, just like other words. Hashtags by themselves are unigrams even if they represent multiple words (e.g. #HungryLikeAWolf), but they may be preceeded by other words. The predictive model would first try to predict by a quadgram, then a trigram, then a bigram and the word itself. 
+In addition to word buttons to insert the text, I plan to show the output as a wordcloud wherein the word size is the probability of that word following what the user typed in.
+
+
+
+
